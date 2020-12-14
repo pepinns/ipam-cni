@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
+set -x
 # Always exit on errors.
 set -e
 
@@ -57,7 +58,6 @@ done
 # Copy file into proper place.
 if cp -f "$DUMMY_BIN_FILE" "$CNI_BIN_DIR"; then
     echo "Dummy CNI installed Success!"
-    exit 0
 else
     echo "Clound not copy file"
     exit 1
