@@ -30,7 +30,7 @@ help: ## Show available Makefile targets
 
 all: test build ## test and build
 build: ## build go binary
-	$(GOBUILD) -o $(BINARY_NAME) -v .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_NAME) -v .
 test: ## run tests
 	$(GOTEST) -v ./...
 clean: ## remove binaries
