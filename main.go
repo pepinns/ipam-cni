@@ -97,7 +97,7 @@ func main() {
 	myCni := &DummyCni{
 		Log: logger,
 	}
-	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "")
+	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "dummy-cni to fetch an IP from IPAM without creating inter")
 }
 
 type FlockWriter struct {
