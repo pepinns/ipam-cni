@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"syscall"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ipam"
+	flock "github.com/gofrs/flock"
 )
 
 type DummyCni struct {
@@ -60,9 +60,13 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		me.Log.Printf("NO IPs returned %+v", result)
 		return errors.New("IPAM plugin returned missing IP config")
 	}
+	result.Interfaces = []*current.Interface{{
+		Name: config.Name,
+	}}
 
 	for _, ip := range result.IPs {
 		me.Log.Printf("Got IP: %s", ip.String())
+		ip.Interface = current.Int(0)
 	}
 
 	err = result.PrintTo(me.Log.Writer())
@@ -93,7 +97,9 @@ func main() {
 		panic(err)
 	}
 	defer logFile.Close()
-	logger := log.New(&FlockWriter{logFile}, "dummy-cni", log.Ldate|log.LstdFlags)
+	logger := log.New(
+		&FlockWriter{logFile, flock.New(logFile.Name())},
+		"dummy-cni", log.Ldate|log.LstdFlags)
 	myCni := &DummyCni{
 		Log: logger,
 	}
@@ -102,11 +108,12 @@ func main() {
 
 type FlockWriter struct {
 	file *os.File
+	lock *flock.Flock
 }
 
 func (me *FlockWriter) Write(buf []byte) (int, error) {
-	err := syscall.Flock(int(me.file.Fd()), syscall.LOCK_EX)
-	defer syscall.Flock(int(me.file.Fd()), syscall.LOCK_UN)
+	err := me.lock.Lock()
+	defer me.lock.Unlock()
 	if err != nil {
 		return 0, err
 	}
