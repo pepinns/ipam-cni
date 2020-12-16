@@ -16,9 +16,6 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 # github.com/coreos/go-iptables v0.4.5
 github.com/coreos/go-iptables/iptables
-# github.com/gofrs/flock v0.8.0
-## explicit
-github.com/gofrs/flock
 # github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8
 github.com/safchain/ethtool
 # github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852

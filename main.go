@@ -12,7 +12,6 @@ import (
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ipam"
-	flock "github.com/gofrs/flock"
 )
 
 type DummyCni struct {
@@ -92,31 +91,12 @@ func (me *DummyCni) Check(config *dummyConf, args *skel.CmdArgs) error {
 }
 
 func main() {
-	logFile, err := os.Open("/tmp/dummy-cni.log")
-	if err != nil {
-		panic(err)
-	}
-	defer logFile.Close()
+	podName := os.Getenv("K8S_POD_NAME")
 	logger := log.New(
-		&FlockWriter{logFile, flock.New(logFile.Name())},
-		"dummy-cni", log.Ldate|log.LstdFlags)
+		os.Stderr,
+		"dummy-cni ("+podName+") ", log.Ldate|log.LstdFlags)
 	myCni := &DummyCni{
 		Log: logger,
 	}
 	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "dummy-cni to fetch an IP from IPAM without creating inter")
-}
-
-type FlockWriter struct {
-	file *os.File
-	lock *flock.Flock
-}
-
-func (me *FlockWriter) Write(buf []byte) (int, error) {
-	err := me.lock.Lock()
-	defer me.lock.Unlock()
-	if err != nil {
-		return 0, err
-	}
-
-	return me.file.Write(buf)
 }
