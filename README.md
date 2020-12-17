@@ -9,6 +9,45 @@ for this example we will need 3 other CNI's
 
 you can install all 3 of these with helm3 (helm 2 is not supported)
 
+this also assumes you are using the following sriov config
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: sriov
+    meta.helm.sh/release-namespace: kube-system
+  labels:
+    app.kubernetes.io/managed-by: Helm
+  name: sriov-sriov-0.1.0-config
+  namespace: kube-system
+data:
+  dp-conf.json: |-
+    {
+    "resourceList": [
+        {
+        "resourceName": "mlnx_sriov_PF_1",
+        "resourcePrefix": "mellanox.com",
+        "selectors": {
+            "pfnames": [
+            "ens1f0"
+            ]
+        }
+        },
+        {
+        "resourceName": "mlnx_sriov_PF_2",
+        "resourcePrefix": "mellanox.com",
+        "selectors": {
+            "pfnames": [
+            "ens1f1"
+            ]
+        }
+        }
+    ]
+    }
+```
+
 ```
 git clone https://github.com/k8snetworkplumbingwg/helm-charts.git
 cd helm-charts
@@ -73,7 +112,7 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_592_1
+    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_PF_1
   name: sriov-vlan592-1
   namespace: lightning
 spec:
@@ -93,7 +132,7 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_592_2
+    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_PF_1
   name: sriov-vlan592-2
   namespace: lightning
 spec:
@@ -123,17 +162,17 @@ spec:
       "name": "dummy-network",
       "ifname": "dummy0",
       "ipam": {
-          "gateway": "10.115.251.1",
-          "type": "whereabouts",
-          "datastore": "kubernetes",
-            "kubernetes": {
-                "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-            },
-            "range": "10.115.251.2-10.115.251.254/24",
-            "log_file" : "/tmp/whereabouts.log",
-            "log_level" : "debug"
+        "gateway": "10.115.251.1",
+        "type": "whereabouts",
+        "datastore": "kubernetes",
+        "kubernetes": {
+            "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+        },
+        "range": "10.115.251.2-10.115.251.254/24",
+        "log_file" : "/tmp/whereabouts.log",
+        "log_level" : "debug"
         }
-}'
+    }'
 EOF
 ```
 now lets test this all out and create a pod that requests all these interfaces
@@ -168,11 +207,11 @@ spec:
     imagePullPolicy: IfNotPresent
     resources:
       requests:
-        mellanox.com/mlnx_sriov_592_1: '1'
-        mellanox.com/mlnx_sriov_592_2: '1'
+        mellanox.com/mlnx_sriov_PF_1: '1'
+        mellanox.com/mlnx_sriov_PF_2: '1'
       limits:
-        mellanox.com/mlnx_sriov_592_1: '1'
-        mellanox.com/mlnx_sriov_592_2: '1'
+        mellanox.com/mlnx_sriov_PF_1: '1'
+        mellanox.com/mlnx_sriov_PF_2: '1'
     name: nginx
     securityContext:
       privileged: true
