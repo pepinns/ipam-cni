@@ -24,7 +24,7 @@ make docker-push
 ```
 now we can install the dummy-cni
 ```
-cat EOF>> | kubectl appy -f -
+cat <<EOF | kubectl appy -f -
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -68,12 +68,12 @@ EOF
 now we can create our `NetworkAttachmentDefinition`s
 
 ```
-cat EOF>> | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx/sriov/592-1
+    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_592_1
   name: sriov-vlan592-1
   namespace: lightning
 spec:
@@ -88,12 +88,12 @@ EOF
 ```
 
 ```
-cat EOF>> | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx/sriov/592-2
+    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_592_2
   name: sriov-vlan592-2
   namespace: lightning
 spec:
@@ -108,7 +108,7 @@ EOF
 ```
 
 ```
-cat EOF>> | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
@@ -139,12 +139,11 @@ EOF
 now lets test this all out and create a pod that requests all these interfaces
 
 ```
-cat EOF>> | kubectl apply -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Pod
 metadata:
   annotations:
-    annotations:
     k8s.v1.cni.cncf.io/networks: '[
 {"name": "sriov-vlan592-1",
 "interface": "net1"
@@ -155,7 +154,7 @@ metadata:
 {"name": "dummy",
 "interface": "dummy0"
 }]'
-  name: dummyPod
+  name: dummypod
   namespace: lightning
 spec:
   containers:
@@ -169,11 +168,11 @@ spec:
     imagePullPolicy: IfNotPresent
     resources:
       requests:
-        mellanox.com/mlnx/sriov/592-1: '1'
-        mellanox.com/mlnx/sriov/592-2: '1'
+        mellanox.com/mlnx_sriov_592_1: '1'
+        mellanox.com/mlnx_sriov_592_2: '1'
       limits:
-        mellanox.com/mlnx/sriov/592-1: '1'
-        mellanox.com/mlnx/sriov/592-2: '1'
+        mellanox.com/mlnx_sriov_592_1: '1'
+        mellanox.com/mlnx_sriov_592_2: '1'
     name: nginx
     securityContext:
       privileged: true
