@@ -11,7 +11,7 @@ DUMMY_BIN_FILE="/usr/bin/dummy-cni"
 # Give help text for parameters.
 usage()
 {
-    printf "This is an entrypoint script for SR-DUMMY CNI to overlay its\n"
+    printf "This is an entrypoint script for DUMMY CNI to overlay its\n"
     printf "binary into location in a filesystem. The binary file will\n"
     printf "be copied to the corresponding directory.\n"
     printf "\n"
@@ -59,7 +59,7 @@ done
 if cp -f "$DUMMY_BIN_FILE" "$CNI_BIN_DIR"; then
     echo "Dummy CNI installed Success!"
 else
-    echo "Clound not copy file"
+    echo "Could not copy file"
     exit 1
 fi
 

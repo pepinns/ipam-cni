@@ -11,7 +11,7 @@ FROM alpine:3
 COPY --from=builder /usr/src/dummy-cni/bin/dummy-cni /usr/bin/
 WORKDIR /
 
-LABEL io.k8s.display-name="IPAM CNI"
+LABEL io.k8s.display-name="DUMMY CNI"
 
 COPY ./images/entrypoint.sh /
 
