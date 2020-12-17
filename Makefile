@@ -41,9 +41,12 @@ deps: ##  go mod <deps>
 	go mod tidy && \
 	go mod vendor
 
-docker-build:
+docker-build: ## build the binary in a container
 	docker build -t $(IMAGE_REPO)/$(IMAGE_NAME):$(IMAGE_VERSION) .
 
-gofmt:
+docker-push: ## pusht the container into a repo
+	docker push $(IMAGE_REPO)/$(IMAGE_NAME):$(IMAGE_VERSION)
+
+gofmt: ## run gofmt
 	@echo "Running gofmt"
 	gofmt -s -l `find . -path ./vendor -prune -o -type f -name '*.go' -print`
