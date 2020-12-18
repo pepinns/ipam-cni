@@ -121,7 +121,7 @@ spec:
         "cniVersion": "0.3.1",
         "vlan": 592,
         "name": "sriov-network",
-        "spoofchk":"off",
+        "spoofchk":"off"
 }'
 EOF
 ```
@@ -132,7 +132,7 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_PF_1
+    k8s.v1.cni.cncf.io/resourceName: mellanox.com/mlnx_sriov_PF_2
   name: sriov-vlan592-2
   namespace: lightning
 spec:
@@ -151,28 +151,26 @@ cat <<EOF | kubectl apply -f -
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
-  annotations:
-    k8s.v1.cni.cncf.io/resourceName: netskope.io/dummy
   name: dummy
   namespace: lightning
 spec:
   config: '{
-      "type": "dummy-cni",
-      "cniVersion": "0.3.1",
-      "name": "dummy-network",
-      "ifname": "dummy0",
-      "ipam": {
-        "gateway": "10.115.251.1",
-        "type": "whereabouts",
-        "datastore": "kubernetes",
-        "kubernetes": {
-            "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
-        },
-        "range": "10.115.251.2-10.115.251.254/24",
-        "log_file" : "/tmp/whereabouts.log",
-        "log_level" : "debug"
-        }
-    }'
+  "type": "dummy-cni",
+  "cniVersion": "0.3.1",
+  "name": "dummy",
+  "ifname": "dummy0",
+  "ipam": {
+    "gateway": "10.115.251.1",
+    "type": "whereabouts",
+    "datastore": "kubernetes",
+    "kubernetes": {
+      "kubeconfig": "/etc/cni/net.d/whereabouts.d/whereabouts.kubeconfig"
+    },
+    "range": "10.115.251.2-10.115.251.254/24",
+    "log_file": "/tmp/whereabouts.log",
+    "log_level": "debug"
+  }
+}'
 EOF
 ```
 now lets test this all out and create a pod that requests all these interfaces
@@ -183,16 +181,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   annotations:
-    k8s.v1.cni.cncf.io/networks: '[
-{"name": "sriov-vlan592-1",
-"interface": "net1"
-},
-{"name": "sriov-vlan592-2",
-"interface": "net2"
-},
-{"name": "dummy",
-"interface": "dummy0"
-}]'
+    k8s.v1.cni.cncf.io/networks: '[{"name": "sriov-vlan592-1","interface": "net1"},{"name":"sriov-vlan592-2","interface": "net2"}, {"name": "dummy", "interface": "dummy0"}]'
   name: dummypod
   namespace: lightning
 spec:
