@@ -12,7 +12,7 @@ BINARY_NAME=./bin/dummy-cni
 #  before running make set vars like so
 #  export DOCKER_REPO=my_repo
 IMAGE_REPO?=jdambly
-IMAGE_VERSION?=v0.1
+IMAGE_VERSION?=v0.2
 IMAGE_NAME?=dummy-cni
 
 help: ## Show available Makefile targets
