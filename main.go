@@ -68,6 +68,10 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		ip.Interface = current.Int(0)
 	}
 
+	for _, route := range result.Routes {
+		me.Log.Printf("Got Route: %s", route.GW.String())
+	}
+
 	err = result.PrintTo(me.Log.Writer())
 	if err != nil {
 		me.Log.Printf("Error during result.PrintTo: %s", err)
