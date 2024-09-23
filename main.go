@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -39,6 +40,7 @@ func WrapSkel(callBack func(*dummyConf, *skel.CmdArgs) error) func(*skel.CmdArgs
 		return callBack(conf, args)
 	}
 }
+
 func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 	// run the IPAM plugin and get back the config to apply
 	me.Log.Printf("Got ADD Args=%s container=%s ifname=%s netns=%s path=%s \nstdindata:\n%s\n", args.Args, args.ContainerID, args.IfName, args.Netns, args.Path, args.StdinData)
@@ -78,6 +80,7 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 	}
 	return types.PrintResult(result, config.CNIVersion)
 }
+
 func (me *DummyCni) Delete(config *dummyConf, args *skel.CmdArgs) error {
 	err := ipam.ExecDel(config.IPAM.Type, args.StdinData)
 	if err != nil {
@@ -94,13 +97,39 @@ func (me *DummyCni) Check(config *dummyConf, args *skel.CmdArgs) error {
 	return nil
 }
 
+// initLogger initializes a logger that writes to both a file and stderr
+func initLogger(logFilePath string, podName string) (*log.Logger, error) {
+	// Open the log file for writing, create it if it doesn't exist
+	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open log file: %v", err)
+	}
+
+	// Create a multi-writer that writes to both stderr and the file
+	multiWriter := io.MultiWriter(os.Stderr, logFile)
+
+	// Create a logger that writes to the multi-writer
+	logger := log.New(multiWriter, "dummy-cni ("+podName+") ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	return logger, nil
+}
+
 func main() {
+	// Get the pod name from the environment variable
 	podName := os.Getenv("K8S_POD_NAME")
-	logger := log.New(
-		os.Stderr,
-		"dummy-cni ("+podName+") ", log.Ldate|log.LstdFlags)
+
+	// Initialize the logger to log to both stderr and a log file
+	logger, err := initLogger("/var/log/dummy-cni.log", podName)
+	if err != nil {
+		// If the logger initialization fails, log the error and exit
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+
+	// Create a DummyCni instance with the initialized logger
 	myCni := &DummyCni{
 		Log: logger,
 	}
-	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "dummy-cni to fetch an IP from IPAM without creating inter")
+
+	// Set up the CNI plugin commands: Add, Check, and Delete
+	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "dummy-cni plugin")
 }

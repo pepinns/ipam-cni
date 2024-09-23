@@ -16,8 +16,15 @@ github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/pkg/utils/sysctl
 # github.com/coreos/go-iptables v0.4.5
 github.com/coreos/go-iptables/iptables
+# github.com/davecgh/go-spew v1.1.0
+github.com/davecgh/go-spew/spew
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8
 github.com/safchain/ethtool
+# github.com/stretchr/testify v1.3.0
+## explicit
+github.com/stretchr/testify/assert
 # github.com/vishvananda/netlink v1.1.1-0.20201029203352-d40f9887b852
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
