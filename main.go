@@ -119,7 +119,7 @@ func main() {
 	podName := os.Getenv("K8S_POD_NAME")
 
 	// Initialize the logger to log to both stderr and a log file
-	logger, err := initLogger("/var/log/dummy-cni.log", podName)
+	logger, err := initLogger("/opt/cni/bin/dummy-cni.log", podName)
 	if err != nil {
 		// If the logger initialization fails, log the error and exit
 		log.Fatalf("Failed to initialize logger: %v", err)
