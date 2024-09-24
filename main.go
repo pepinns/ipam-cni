@@ -78,7 +78,7 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 	if err != nil {
 		me.Log.Printf("Error during result.PrintTo: %s", err)
 	}
-	return cnitypes.PrintResult(result, cniVersion)
+	return cnitypes.PrintResult(result, config.CNIVersion)
 }
 
 func (me *DummyCni) Delete(config *dummyConf, args *skel.CmdArgs) error {
