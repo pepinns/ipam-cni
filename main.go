@@ -10,7 +10,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ipam"
 )
@@ -50,7 +50,7 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		return err
 	}
 	// Convert whatever the IPAM result was into the current Result type
-	result, err := current.NewResultFromResult(r)
+	result, err := types100.NewResultFromResult(r)
 	if err != nil {
 		me.Log.Printf("Error during NewResultFromResult: %s", err)
 		return err
@@ -61,13 +61,13 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		me.Log.Printf("NO IPs returned %+v", result)
 		return errors.New("IPAM plugin returned missing IP config")
 	}
-	result.Interfaces = []*current.Interface{{
+	result.Interfaces = []*types100.Interface{{
 		Name: config.Name,
 	}}
 
 	for _, ip := range result.IPs {
 		me.Log.Printf("Got IP: %s", ip.String())
-		ip.Interface = current.Int(0)
+		ip.Interface = types100.Int(0)
 	}
 
 	for _, route := range result.Routes {
