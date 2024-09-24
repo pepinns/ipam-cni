@@ -3,8 +3,8 @@ module github.com/pepinns/dummy-cni
 go 1.22
 
 require (
-	github.com/containernetworking/cni v1.2.1
-	github.com/containernetworking/plugins v1.5.1
+	github.com/containernetworking/cni v1.2.0
+	github.com/containernetworking/plugins v1.5.0
 )
 
 require (

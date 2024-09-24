@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/containernetworking/cni/pkg/version"
 	"io"
 	"log"
 	"os"
 
 	"github.com/containernetworking/cni/pkg/skel"
-	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/100"
-	"github.com/containernetworking/cni/pkg/version"
+	cnitypes "github.com/containernetworking/cni/pkg/types"
+	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/plugins/pkg/ipam"
 )
 
@@ -20,7 +20,7 @@ type DummyCni struct {
 }
 
 type dummyConf struct {
-	types.NetConf
+	cnitypes.NetConf
 }
 
 func loadConfigFile(bytes []byte) (*dummyConf, error) {
@@ -50,7 +50,7 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		return err
 	}
 	// Convert whatever the IPAM result was into the current Result type
-	result, err := types100.NewResultFromResult(r)
+	result, err := current.NewResultFromResult(r)
 	if err != nil {
 		me.Log.Printf("Error during NewResultFromResult: %s", err)
 		return err
@@ -61,13 +61,13 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 		me.Log.Printf("NO IPs returned %+v", result)
 		return errors.New("IPAM plugin returned missing IP config")
 	}
-	result.Interfaces = []*types100.Interface{{
+	result.Interfaces = []*current.Interface{{
 		Name: config.Name,
 	}}
 
 	for _, ip := range result.IPs {
 		me.Log.Printf("Got IP: %s", ip.String())
-		ip.Interface = types100.Int(0)
+		ip.Interface = current.Int(0)
 	}
 
 	for _, route := range result.Routes {
@@ -78,7 +78,7 @@ func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
 	if err != nil {
 		me.Log.Printf("Error during result.PrintTo: %s", err)
 	}
-	return types.PrintResult(result, config.CNIVersion)
+	return cnitypes.PrintResult(result, cniVersion)
 }
 
 func (me *DummyCni) Delete(config *dummyConf, args *skel.CmdArgs) error {
