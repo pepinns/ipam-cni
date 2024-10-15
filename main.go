@@ -4,103 +4,123 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/containernetworking/cni/pkg/version"
 	"log"
 	"os"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containernetworking/cni/pkg/version"
+	current "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/containernetworking/plugins/pkg/ipam"
 )
 
-type DummyCni struct {
-	Log *log.Logger
+var logger *log.Logger
+
+// Initialize the logger with log level and log file
+func initLogger(logFile string, logLevel string) {
+	// Set default log file if not provided
+	if logFile == "" {
+		logFile = "/opt/cni/bin/dummy-cni.log"
+	}
+
+	// Open log file
+	file, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+
+	// Set logger based on log level
+	logger = log.New(file, "dummy-cni: ", log.LstdFlags|log.Lshortfile)
+	if logLevel == "DEBUG" {
+		logger.SetFlags(log.LstdFlags | log.Lshortfile)
+	}
 }
 
+// dummyConf is a simple struct to capture any passed CNI configuration
 type dummyConf struct {
 	types.NetConf
+	LogLevel string `json:"log_level"`
+	LogFile  string `json:"log_file"`
 }
 
+// Load the CNI configuration from stdin
 func loadConfigFile(bytes []byte) (*dummyConf, error) {
 	conf := &dummyConf{}
 	if err := json.Unmarshal(bytes, conf); err != nil {
 		return nil, fmt.Errorf("Failed to load configuration data, error = %+v", err)
 	}
+	initLogger(conf.LogFile, conf.LogLevel)
 	return conf, nil
 }
 
-func WrapSkel(callBack func(*dummyConf, *skel.CmdArgs) error) func(*skel.CmdArgs) error {
-	return func(args *skel.CmdArgs) error {
-		conf, err := loadConfigFile(args.StdinData)
-		if err != nil {
-			return err
-		}
-		return callBack(conf, args)
-	}
-}
-func (me *DummyCni) Add(config *dummyConf, args *skel.CmdArgs) error {
-	// run the IPAM plugin and get back the config to apply
-	me.Log.Printf("Got ADD Args=%s container=%s ifname=%s netns=%s path=%s \nstdindata:\n%s\n", args.Args, args.ContainerID, args.IfName, args.Netns, args.Path, args.StdinData)
-	r, err := ipam.ExecAdd(config.IPAM.Type, args.StdinData)
+// cmdAdd handles the ADD command
+func cmdAdd(args *skel.CmdArgs) error {
+
+	// Load and log the configuration
+	conf, err := loadConfigFile(args.StdinData)
 	if err != nil {
-		me.Log.Printf("Error during ExecAdd: %s", err)
+		logger.Printf("Error loading configuration: %v", err)
 		return err
 	}
-	// Convert whatever the IPAM result was into the current Result type
-	result, err := current.NewResultFromResult(r)
-	if err != nil {
-		me.Log.Printf("Error during NewResultFromResult: %s", err)
-		return err
+	logger.Printf("CNI Configuration: %+v", conf)
+
+	// Initialize an L2 default result.
+	result := &current.Result{
+		CNIVersion: conf.CNIVersion,
+		Interfaces: []*current.Interface{
+			{
+				Name:    conf.Name,
+				Sandbox: args.Netns,
+			},
+		},
 	}
 
-	me.Log.Printf("Got result version %s \n%+v", result.CNIVersion, result)
-	if len(result.IPs) == 0 {
-		me.Log.Printf("NO IPs returned %+v", result)
+	// run the IPAM plugin and get back the config to apply
+	r, err := ipam.ExecAdd(conf.IPAM.Type, args.StdinData)
+	if err != nil {
+		return err
+	}
+	ipamResult, err := current.NewResultFromResult(r)
+	if err != nil {
+		return err
+	}
+	if len(ipamResult.IPs) == 0 {
 		return errors.New("IPAM plugin returned missing IP config")
 	}
-	result.Interfaces = []*current.Interface{{
-		Name: config.Name,
-	}}
-
-	for _, ip := range result.IPs {
-		me.Log.Printf("Got IP: %s", ip.String())
-		ip.Interface = current.Int(0)
+	logger.Printf("IPAM Result: %+v", ipamResult)
+	for _, ipc := range ipamResult.IPs {
+		// all addresses belong to the same interface
+		ipc.Interface = current.Int(0)
 	}
+	result.IPs = ipamResult.IPs
+	result.Routes = ipamResult.Routes
+	// logging the result before returning it
+	logger.Printf("Result: %+v", result)
 
-	for _, route := range result.Routes {
-		me.Log.Printf("Got Route: %s", route.GW.String())
-	}
-
-	err = result.PrintTo(me.Log.Writer())
-	if err != nil {
-		me.Log.Printf("Error during result.PrintTo: %s", err)
-	}
-	return types.PrintResult(result, config.CNIVersion)
+	// Return the result as JSON
+	return types.PrintResult(result, conf.CNIVersion)
 }
-func (me *DummyCni) Delete(config *dummyConf, args *skel.CmdArgs) error {
-	err := ipam.ExecDel(config.IPAM.Type, args.StdinData)
+
+// cmdDel handles the DEL command
+func cmdDel(args *skel.CmdArgs) error {
+	conf, err := loadConfigFile(args.StdinData)
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (me *DummyCni) Check(config *dummyConf, args *skel.CmdArgs) error {
-	err := ipam.ExecCheck(config.IPAM.Type, args.StdinData)
+	err = ipam.ExecDel(conf.IPAM.Type, args.StdinData)
 	if err != nil {
 		return err
 	}
+	return err
+}
+
+// cmdCheck handles the CHECK command
+func cmdCheck(args *skel.CmdArgs) error {
 	return nil
 }
 
 func main() {
-	podName := os.Getenv("K8S_POD_NAME")
-	logger := log.New(
-		os.Stderr,
-		"dummy-cni ("+podName+") ", log.Ldate|log.LstdFlags)
-	myCni := &DummyCni{
-		Log: logger,
-	}
-	skel.PluginMain(WrapSkel(myCni.Add), WrapSkel(myCni.Check), WrapSkel(myCni.Delete), version.All, "dummy-cni to fetch an IP from IPAM without creating inter")
+	// Use the skel.PluginMainFuncs pattern to register the Add, Check, and Del commands
+	skel.PluginMainFuncs(skel.CNIFuncs{Add: cmdAdd, Del: cmdDel, Check: cmdCheck}, version.All, "A simple CNI plugin that logs inputs and returns valid JSON.")
+
 }
